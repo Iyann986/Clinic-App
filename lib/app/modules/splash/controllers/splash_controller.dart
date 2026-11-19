@@ -1,23 +1,41 @@
+import 'package:clinic_app/app/core/constant/storage.dart';
+import 'package:clinic_app/app/data/services/local_service.dart';
+import 'package:clinic_app/app/routes/app_pages.dart';
 import 'package:get/get.dart';
 
 class SplashController extends GetxController {
-  //TODO: Implement SplashController
+  final LocalService _localService = LocalService();
 
-  final count = 0.obs;
   @override
   void onInit() {
     super.onInit();
+    _checkAuthAndNavigate();
   }
 
-  @override
-  void onReady() {
-    super.onReady();
-  }
+  Future<void> _checkAuthAndNavigate() async {
+    final firstTimeLaunch = await _localService.read(
+      StorageKey.firstTimeLaunch,
+    );
+    final token = await _localService.read(StorageKey.tokenAccess);
 
-  @override
-  void onClose() {
-    super.onClose();
-  }
+    Future.delayed(const Duration(seconds: 2), () {
+      // Sudah pernah login -> langsung masuk ke aplikasi.
+      // TODO: ganti ke Routes.MAIN_WRAPPER begitu bottom navigation
+      // (Chat/Telemedis/Riwayat/Profil) sudah dibuat.
+      if (token != null) {
+        Get.offAllNamed(Routes.HOME);
+        return;
+      }
 
-  void increment() => count.value++;
+      // Belum pernah buka aplikasi sama sekali -> tampilkan onboarding.
+      if (firstTimeLaunch == null) {
+        _localService.write(StorageKey.firstTimeLaunch, 'true');
+        Get.offAllNamed(Routes.ONBOARDING);
+        return;
+      }
+
+      // Pernah buka tapi belum/sudah logout -> langsung ke Login.
+      Get.offAllNamed(Routes.LOGIN);
+    });
+  }
 }
